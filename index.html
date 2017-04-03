@@ -1,0 +1,193 @@
+<html>
+<head>
+    <title>6.UAT Recovery Practice</title>
+    <script>
+        function getRandomInt(max) {
+          var min = 0;
+          min = Math.ceil(min);
+          max = Math.floor(max);
+          return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        problems = [
+            { name: "Power outage", description: "Pause presentation for one minute and come back." },
+            { name: "Slides stop working", description: "Present without slides for the rest of the presentation." },
+            { name: "Sound stops working", description: "Project your voice for the rest of the presentation." },
+            { name: "Fire alarm", description: "Stop presentation abruptly and give evacuation advice." },
+            { name: "Your phone goes off", description: "Silence it and apologize" },
+            { name: "Audience phone goes off", description: "Ask them to silence it" },
+        ];
+
+        document.addEventListener("DOMContentLoaded", function() {
+          var p_holder = document.querySelector('.active-problems-holder');
+          for (var i = 0; i < problems.length; i++) {
+            var label = document.createElement('label');
+            var input = document.createElement('input');
+            input.setAttribute('type', 'checkbox');
+            input.setAttribute('checked', 'checked');
+            input.setAttribute('id', 'problem' + i);
+            label.appendChild(input)
+            label.appendChild(document.createTextNode(problems[i].name + ' -- ' + problems[i].description));
+            p_holder.appendChild(label);
+            p_holder.appendChild(document.createElement('br'));
+          }
+
+          var getValue = function(i) {
+            var x = document.getElementById(i);
+            return x.value;
+          };
+
+          var form = document.querySelector('form');
+
+          var setupTimer = function(max, min, maxD, active) {
+            var timeleft = max*60;
+            var realProblems = [];
+            var realMaxD = getRandomInt(Math.min(maxD + 1, problems.length));
+            for (var i = 0; i < realMaxD; i++) {
+                var p = {};
+                p.problem = problems[getRandomInt(problems.length)]
+                p.t = getRandomInt(timeleft);
+                realProblems.push(p);
+            }
+            var paused = true;
+            var cutoff = Math.max((max - min)*60, 0);
+            form.parentNode.removeChild(form);
+            document.addEventListener('keydown', function(e) {
+                if (e.keyCode == 32) {
+                    paused = !paused;
+                }
+            });
+            var timerDiv = document.createElement('div');
+            timerDiv.className = 'timer';
+            var problemDiv = document.createElement('div');
+            problemDiv.className = 'problem';
+            document.body.appendChild(timerDiv);
+            timerDiv.addEventListener('click', function() {
+                paused = !paused;
+            })
+            document.body.appendChild(problemDiv);
+            var paint = function() {
+
+                if (timeleft > cutoff) {
+                    timerDiv.className = 'timer unfinished';
+                } else if (timeleft < 0) {
+                    timerDiv.className = 'timer overtime';
+                } else {
+                    timerDiv.className = 'timer finished';
+                }
+
+                if (timeleft >= 0) {
+                    var text = Math.floor(timeleft/60) + 'm ' + Math.floor(timeleft % 60) + 's';
+                    timerDiv.textContent = text;
+                } else {
+                    timerDiv.textContent = '' + Math.floor(timeleft);
+                }
+
+                if (!paused) {
+                    timeleft -= 0.25;
+                } else {  
+                    timerDiv.textContent += ' (paused)';
+                }
+
+                var newRealProblems = [];
+                for (var i = 0; i < realProblems.length; i++) {
+                    var p = realProblems[i];
+                    if (timeleft < p.t) {
+                        problemDiv.textContent = p.problem.name + ' -- ' + p.problem.description;
+                    } else {
+                        newRealProblems.push(p);
+                    }
+                }
+                realProblems = newRealProblems;
+            }
+            paint();
+            setInterval(paint, 250);
+          };
+
+          form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var maxPresentationTime = +(getValue('maxPresentationTime') || '9');
+            var minPresentationTime = +(getValue('minPresentationTime') || '7');
+            var maxDisturbances = +(getValue('maxDisturbances') || '1');
+            var activeProblems = [];
+            for (var i = 0; i < problems.length; i++) {
+                if (document.getElementById('problem' + i).checked) {
+                    activeProblems.push(problems[i]);
+                }
+            }
+            setupTimer(maxPresentationTime, minPresentationTime, maxDisturbances, activeProblems);
+          });
+        });
+    </script>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0 auto 0 auto;
+            max-width: 50em;
+            padding: 0 10px 0 10px;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 1em;
+        }
+        h3 {
+            text-align: center;
+            margin-top: 1em;
+            color: #666;
+        }
+        .form-holder {
+            margin-bottom: 1em;
+        }
+
+        .timer {
+            font-size: 4em;
+            text-align: center;
+        }
+
+        .timer.unfinished {
+            background-color: #FFFFCC;
+        }
+
+        .timer.finished {
+            background-color: #CCFFCC;
+        }
+
+        .timer.overtime {
+            background-color: #FFCCCC;
+        }
+
+        .problem {
+            color: #300;
+            text-align: center;
+            font-size: 3em;
+            margin-top: 2em;
+        }
+    </style>
+</head>
+<body>
+<h1>6.UAT Recovery Practice</h1>
+<h3>Enter details. Once the timer is started, space or click to pause/unpause. Refresh to reset.</h3>
+<form>
+    <div class='form-holder'>
+        <label>
+            Max presentation time (minutes): 
+            <input id="maxPresentationTime" placeholder="Default 9">
+    </div>
+    <div class='form-holder'>
+        <label>
+            Min presentation time (minutes): 
+            <input id="minPresentationTime" placeholder="Default 7">
+        </label>
+    </div>
+    <div class='form-holder'>
+        <label>
+            Max number of disturbances: 
+            <input id="maxDisturbances" placeholder="Default 1">
+        </label>
+    </div>
+    <div class='form-holder active-problems-holder'>
+        <p>Enabled Disturbances</p>
+    </div>
+    <input type="submit" value="Start presentation">
+</form>
+</body>
